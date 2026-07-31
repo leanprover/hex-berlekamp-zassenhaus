@@ -19,10 +19,10 @@
       "type": "git",
       "subDir": null,
       "scope": "",
-      "rev": "675527689981fc1c7106b166a788b404735092e1",
+      "rev": "ceea063c0aff66dccd426a753f9590a89934d779",
       "name": "HexHensel",
       "manifestFile": "lake-manifest.json",
-      "inputRev": "675527689981fc1c7106b166a788b404735092e1",
+      "inputRev": "ceea063c0aff66dccd426a753f9590a89934d779",
       "inherited": false,
       "configFile": "lakefile.toml"
     },

@@ -9,7 +9,7 @@ require HexBerlekamp from git
   "https://github.com/leanprover/hex-berlekamp.git" @ "81474f96f4515d92bec857e89ff471c0a2b919de"
 
 require HexHensel from git
-  "https://github.com/leanprover/hex-hensel.git" @ "675527689981fc1c7106b166a788b404735092e1"
+  "https://github.com/leanprover/hex-hensel.git" @ "ceea063c0aff66dccd426a753f9590a89934d779"
 
 require HexLLL from git
   "https://github.com/leanprover/hex-lll.git" @ "554f5b452a7866e206d2fd31b08a533b4c985b7c"

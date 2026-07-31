@@ -22,7 +22,7 @@ jobs:
           auto-config: false
           build: false
       - name: Build library and release regressions
-        run: lake build HexBerlekampZassenhaus HexBerlekampZassenhausTests
+        run: lake build HexBerlekampZassenhaus HexBerlekampZassenhausModules HexBerlekampZassenhausTests
       - name: Build conformance sidecar
         run: |
           cd conformance

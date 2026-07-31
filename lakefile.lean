@@ -17,5 +17,9 @@ require HexLLL from git
 @[default_target]
 lean_lib HexBerlekampZassenhaus
 
+@[default_target]
+lean_lib HexBerlekampZassenhausModules where
+  globs := #[`HexBerlekampZassenhaus.All]
+
 lean_lib HexBerlekampZassenhausTests where
   globs := #[`HexBerlekampZassenhaus.FactorTacticTests]

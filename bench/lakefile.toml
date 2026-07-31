@@ -1,0 +1,25 @@
+name = "hex-berlekamp-zassenhaus-bench"
+defaultTargets = ["hexbz_bench"]
+
+leanOptions = [
+  { name = "doc.verso", value = true },
+  { name = "doc.verso.suggestions", value = false },
+]
+
+[[require]]
+name = "HexBerlekampZassenhaus"
+path = ".."
+
+[[require]]
+name = "hex-test-kit"
+git = "https://github.com/leanprover/hex-test-kit.git"
+rev = "58d88b17d0c817cd420317c51a7a01b95a9e4586"
+
+[[require]]
+name = "lean-bench"
+git = "https://github.com/kim-em/lean-bench.git"
+rev = "fa30c2763cf523f3ac8e46dc3a1dad0845a40098"
+
+[[lean_exe]]
+name = "hexbz_bench"
+root = "HexBerlekampZassenhaus.Bench"

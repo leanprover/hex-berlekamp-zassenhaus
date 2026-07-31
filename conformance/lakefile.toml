@@ -1,0 +1,24 @@
+name = "hex-berlekamp-zassenhaus-conformance"
+defaultTargets = ["HexBerlekampZassenhausConformance", "hexbz_emit_fixtures"]
+
+leanOptions = [
+  { name = "doc.verso", value = true },
+  { name = "doc.verso.suggestions", value = false },
+]
+
+[[require]]
+name = "HexBerlekampZassenhaus"
+path = ".."
+
+[[require]]
+name = "hex-test-kit"
+git = "https://github.com/leanprover/hex-test-kit.git"
+rev = "58d88b17d0c817cd420317c51a7a01b95a9e4586"
+
+[[lean_lib]]
+name = "HexBerlekampZassenhausConformance"
+globs = ["HexBerlekampZassenhaus.Conformance", "HexBerlekampZassenhaus.CrossCheck"]
+
+[[lean_exe]]
+name = "hexbz_emit_fixtures"
+root = "HexBerlekampZassenhaus.EmitFixtures"

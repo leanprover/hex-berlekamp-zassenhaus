@@ -16,10 +16,14 @@ def ZPoly.factors   (f : ZPoly) : Array (ZPoly × Nat)
 ```
 
 `factorClassical` performs bounded subset recombination.
-`factorLattice` performs logarithmic-derivative lattice
+`factorLattice` performs proved logarithmic-derivative lattice
 recombination. `factorTrial` performs exhaustive integer trial
-division. `ZPoly.factorize` is total: it uses the first two methods
-when they return a verified answer and otherwise uses trial division.
+division. `ZPoly.factorize` is total: on a large modular support it
+may first use a small logarithmic-derivative lattice to propose a
+partition, verify the partition exactly, and run `factorClassical`
+again on every proposed piece. A proposal is never evidence of
+irreducibility. If proposal replay or either ordinary fast method
+declines, the selector eventually uses trial division.
 
 `factorTraced` returns the same factorization together with a
 `DirectFactorTrace`. The trace records the `FactorMethod`, a possible
@@ -93,21 +97,76 @@ There is no dilation-coordinate factorization method.
 - a bitset of subset-reachable degrees.
 
 `DirectPrimePlan` stores the chosen factorization and the other
-successful factorizations examined. If the first admissible prime has
-few modular factors, it is used immediately. Otherwise a bounded
-number of further admissible primes are compared by:
+successful factorization examined, if any. The first admissible prime is
+split. Further admissible primes are *scouted* while `scoutPays` says
+the walk can still afford another observation; plans are compared by:
 
 1. predicted complete subset-search work;
 2. number of reachable proper factor degrees;
 3. required Hensel precision;
 4. the prime, as a deterministic tie breaker.
 
-Inadmissible primes do not spend the allowance of successful
-factorizations. A singleton modular factorization is selected
-immediately.
+Every key of that score is a function of the prime and the multiset of
+modular factor degrees, so a scouted degree pattern scores exactly as
+the factorization it predicts would. Only the winner is split.
+
+Inadmissible primes do not spend the allowance of scouts. The walk
+therefore ends holding the plan a policy that split every candidate
+would have selected, having split the first admissible prime and at
+most the winner — except where `scoutPays` ends the walk, which it may
+do at the first admissible prime and after any scouted candidate wins.
 
 The reachability bitset is computed by dynamic programming in
 `O(number of factors × degree)`.
+
+### Pricing one more observation
+
+`scoutPays` is the walk's only stopping decision. It compares the
+recombination work the plan in hand may still have to do against the
+scouts and split the rest of the walk may spend. Both sides are
+estimates over shape already observed — the input degree, the primes
+involved, and the degree patterns of the plans in hand — so the walk
+prices its own next step and nothing about the corpus or the instance's
+provenance enters.
+
+Writing `n` for the modular degree, `q` for the prime about to be
+scouted, `w` and `d` for the width and largest modular factor degree of
+the plan held, and `W` for the machine words of that plan's Hensel
+modulus:
+
+- a recombination candidate costs about `n²` coefficient operations on
+  `W`-word integers, averaged over the cheap degree and
+  trailing-coefficient rejections and the subsets that reach a product.
+  A complete head-forced search visits `directSubsetCost w` of them, but
+  the direct engine abandons the search at `defaultSubsetBudget`, so the
+  work still ahead is at most
+  `min (directSubsetCost w) defaultSubsetBudget · n² · W`;
+- a bounded scout runs one Frobenius power and one gcd per separated
+  degree, about `bitLen q` squarings of the degree-`n` image apiece, and
+  stops at the largest factor degree of the image it separates. That
+  degree is unknown before scouting, so `d` stands in for it — a proxy,
+  not a bound: a narrower candidate tends to have larger factor degrees;
+- acting on what a scout learns costs one further Berlekamp split, whose
+  matrix and row reduction are about `bitLen q · n³`;
+- so a walk with `fuel` observations left may spend at most `fuel`
+  scouts and one split.
+
+Both estimates carry a factor `n²`, which cancels. What remains decides
+**affordability, not expected value**: the left side is the most any
+prime could save and the right side the most the remaining walk could
+spend, so passing means the walk *could* pay for itself, not that it
+will. That is weaker than a value-of-information rule and is the reason
+the walk can still buy an observation that turns out worthless.
+
+The two constants scale a modular word operation against a recombination
+candidate, which the inequality counts as one. They are measured ratios,
+they are not precise, and changing them changes decisions;
+`scripts/bench/prime_policy_replay.py --sensitivity` reports over what
+range the whole replayed walk is unchanged and what the exceptions cost.
+
+`scoutFuel` remains, as a bound that makes the walk terminate in a fixed
+number of observations however cheap the next one looks; which of those
+observations happen is `scoutPays`'s decision, not the bound's.
 
 ## Direct Hensel lift
 
@@ -133,10 +192,41 @@ cardinality. It maintains the selected degree and a cheap trailing
 coefficient test before constructing a full candidate. A surviving
 candidate is accepted only when exact bounded division succeeds.
 
+Between constructing a candidate and dividing by it, the search
+applies a finite-field divisibility obstruction. Reduction modulo a
+fixed word-sized prime `q` is a ring homomorphism `ℤ[X] → 𝔽_q[X]`, so
+a divisor of the target reduces to a divisor of the reduced target and
+`𝔽_q[X]` division leaves no remainder; a nonzero remainder therefore
+proves the candidate does not divide. The obstruction is one-sided:
+it can reject, never accept, and a zero remainder falls through to the
+same exact integer division as before. There is no separate
+inconclusive branch, because a reduced divisor that is zero or that
+has lost its leading coefficient is covered by the same law. This is
+a necessary condition on the *constructed* candidate, not on its
+support: the candidate is the centred lift modulo `p^k` of the scaled
+selected product, and centred lifting does not commute with reduction
+modulo `q`, so the candidate's image is not a function of the lifted
+factors' images.
+
 The budget is measured in complete subset-cardinality levels. If the
 next level does not fit, the method declines before testing any member
 of that level. An incomplete search is never used as evidence of
 irreducibility.
+
+The total selector routes eligible large, dense, already-normalized
+inputs to a proposal stage before this unrestricted classical search.
+It streams every unforced subset of cardinality one through three,
+using degree and trailing-coefficient filters before constructing a
+candidate. After the first exact split, it reuses the same Hensel lift
+and complementary lifted-factor indices to search support sizes one
+and two again on the exact quotient. This continues until the cheap
+search is exhausted, the residual is one, or the shared candidate
+budget cannot admit another complete level. After an exact peel, the
+retained factors, residual, and residual support pass directly to the
+proposal lattice. With no exact progress, the selector skips that
+speculative lattice and proceeds to the full CLD fallback. Exhausting
+these configured cardinalities is distinct from exhausting the
+candidate budget.
 
 `DirectSupportPartition` associates each irreducible integer factor
 with its unique modular support. The minimal-head proof shows that the
@@ -201,6 +291,32 @@ LatticeTotality.lean
 
 Lattice totality is conditional on successful direct prime selection.
 
+## Selected-coordinate proposals
+
+For an eligible large support where low-cardinality peeling makes exact
+progress, `ZPoly.factorize` next tries a cheaper, untrusted use of the
+same CLD data. It prepares the leading sixteen coefficient columns
+once, then reduces nested lattices using prefixes of four, eight,
+twelve, and sixteen columns. Equal projected columns propose groups of
+lifted factors.
+
+Acceptance has a deliberately narrow boundary:
+
+1. reconstruct every proposed piece in the original integer
+   coordinates;
+2. check exact product reconstruction;
+3. run the unrestricted, proved classical factorizer on every piece;
+4. concatenate its results and check the final public product.
+
+Thus LLL reduction and partition extraction are heuristics here. The
+final product theorem follows from the exact checks, and the final
+irreducibility theorem follows only from the ordinary classical
+factorization theorem. If no CLD partition is found after a genuine
+peel, the peeled factors and exact residual form a useful proposal of
+their own. If no peel exists, the selector does not build a
+speculative lattice or replay the unchanged input and proceeds to the
+proved full lattice method.
+
 ## Trial division
 
 `factorTrial` enumerates integer candidates up to the proved
@@ -208,11 +324,60 @@ coefficient bound and tests exact division. It does not require a
 suitable modular prime and is therefore the unconditional final
 method.
 
+## Iterated quadratic norms
+
+`quadNorm d g` is the norm of `g(X - t)` along `ℤ[t]/(t² - d) → ℤ`, that
+is `g(X - √d) · g(X + √d)`. It carries the coefficient pair of
+`g(X - t)` through one synthetic Taylor shift with shift constant `-t`,
+then materializes only the rational part `p² - d q²` of the product with
+the conjugate, whose `t` component cancels coefficientwise.
+`iteratedNorm c ds` folds those norms over the radicands from `X - c`,
+giving `F(c; d₁, …, dₙ) = ∏_ε (X - c - ∑ᵢ εᵢ √dᵢ)` over the `2ⁿ` sign
+patterns.
+
+A `QuadraticNormCertificate` is a translation and a list of radicands.
+Its `check` verifies two decidable conditions: that no nonempty
+subproduct of the radicands is a perfect square, which is
+`independentSquareClasses` and is exactly multiplicative independence in
+`ℚ*/(ℚ*)²`; and that the input equals `F(c; d)` coefficientwise up to
+the unit `-1`. Both are integer arithmetic, with no factorization of the
+radicands and no number field constructed.
+
+`QuadraticNormCertificate.recover?` proposes the pair from the top
+`2n + 1` coefficients by exact rational arithmetic, and `certify?` is
+recovery followed by the check. Recovery is untrusted: a wrong proposal
+is refused by `check`, so the trust surface stays `quadNorm`,
+`iteratedNorm`, `isPerfectSquare`, `independentSquareClasses`, and one
+array comparison.
+
+`quadraticNormCertified core width` is the production gate. `width` is
+the number of modular factors, so it is known exactly when
+`classicalInput` has its prime plan and before any Hensel lift. Below
+`QuadraticNormCertificate.widthFloor` the gate is `false` with nothing
+constructed; at or above it, recombination would walk up to `2^(w-1)`
+supports, which is the cost the certificate is worth attempting to
+replace. A success returns the square-free core as a single factor
+through the same `reassemblePolynomialFactors` as the constant and
+quadratic cases, so it is the ordinary singleton-irreducibility answer
+and not a second entry point; the trace records `FactorMethod`
+`quadraticNorm`. A failure falls through to `planned` carrying no state.
+
+Every `F(c; d)` is monic, so the certificate applies exactly when the
+primitive part has leading coefficient `±1`; `normalizePrimitiveSign`
+inside the check is the whole normalization. There is no scaling and no
+content division.
+
+The field theory that turns a successful check into irreducibility is
+the multiquadratic tower theorem, in `hex-berlekamp-zassenhaus-mathlib`.
+
 ## Correctness
 
 The Mathlib-free library proves executable product reconstruction,
 exact quotient identities, normalization identities, and the
-correctness of the bounded iterators.
+correctness of the bounded iterators. It also proves the finite-field
+obstruction never rejects a genuine divisor, and that a leaf which
+skips an obstructed candidate's exact division returns what the
+unfiltered leaf returned.
 
 `hex-berlekamp-zassenhaus-mathlib` proves:
 
@@ -222,7 +387,15 @@ correctness of the bounded iterators.
 - completeness of classical recombination;
 - both inclusions in the lattice support-span equality;
 - irreducibility and normalization of every recorded factor;
-- uniqueness of the final factorization.
+- uniqueness of the final factorization;
+- the quadratic-norm correspondence: `quadNorm` maps to
+  `g(X - r) · g(X + r)` over any commutative ring with `r² = d`, the
+  iterate maps to the sign-pattern product, and
+  `independentSquareClasses` decides independence of the square
+  classes;
+- soundness of the certificate: a successful `check` makes its input
+  irreducible in `Polynomial ℤ`, and so does a `true` from
+  `quadraticNormCertified`.
 
 The ordinary umbrella exposes the supported factorization and tactic
 surface. `HexBerlekampZassenhaus.All` and

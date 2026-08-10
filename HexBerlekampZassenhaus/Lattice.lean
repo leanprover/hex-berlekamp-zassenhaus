@@ -322,6 +322,85 @@ theorem centeredModNat_emod_eq_of_natAbs_le
       simp [hnotneg]
       omega
 
+/-- A modulus prepared for repeated centred reduction.
+
+`centeredModNat` states what the centred representative *is*: reduce, then
+subtract the modulus when the residue is past halfway.  Evaluating that
+statement literally derives two values at every call -- the modulus in integer
+form, and the doubled residue the halfway test `2 * r.natAbs ≤ m` compares
+against.  At recovery precision the second is a fresh multi-limb natural,
+allocated and freed once per leaf.  A traversal that reduces against one fixed
+modulus millions of times wants neither: comparing the residue against a
+recorded `m / 2` decides the same test and builds nothing.
+
+The proof fields pin both derived values to the natural one, so a reduction
+reading this object is interchangeable with one reading the modulus directly;
+`centered_eq` is that statement. -/
+structure LiftModulus where
+  /-- The modulus. -/
+  nat : Nat
+  /-- The modulus as an integer. -/
+  int : Int
+  /-- The largest residue that is its own centred representative, `nat / 2`. -/
+  half : Int
+  /-- The recorded integer modulus is the modulus. -/
+  int_eq : int = (nat : Int)
+  /-- The recorded threshold is half the modulus, rounded down. -/
+  half_eq : half = ((nat / 2 : Nat) : Int)
+
+/-- Prepare a natural number for repeated centred reduction. -/
+@[expose]
+def LiftModulus.ofNat (m : Nat) : LiftModulus where
+  nat := m
+  int := (m : Int)
+  half := ((m / 2 : Nat) : Int)
+  int_eq := rfl
+  half_eq := rfl
+
+@[simp]
+theorem LiftModulus.nat_ofNat (m : Nat) : (LiftModulus.ofNat m).nat = m := rfl
+
+@[simp]
+theorem LiftModulus.int_ofNat (m : Nat) : (LiftModulus.ofNat m).int = (m : Int) := rfl
+
+@[simp]
+theorem LiftModulus.half_ofNat (m : Nat) :
+    (LiftModulus.ofNat m).half = ((m / 2 : Nat) : Int) := rfl
+
+/-- A prepared modulus carries no freedom beyond the modulus it records. -/
+theorem LiftModulus.eq_ofNat : ∀ m : LiftModulus, m = LiftModulus.ofNat m.nat
+  | ⟨_, _, _, rfl, rfl⟩ => rfl
+
+/-- The centred representative of `z` against a prepared modulus.
+
+`z % modulus` is already the least nonnegative residue, so the centred
+representative is that residue, less the modulus once it is past the recorded
+halfway threshold.  No representation of the modulus is built here: both the
+reduction and the comparison read values the modulus arrived with. -/
+@[expose]
+def LiftModulus.centered (m : LiftModulus) (z : Int) : Int :=
+  if m.nat = 0 then
+    z
+  else
+    let r := z % m.int
+    if r ≤ m.half then r else r - m.int
+
+/-- Reducing against a prepared modulus computes the centred representative. -/
+theorem LiftModulus.centered_eq (m : LiftModulus) (z : Int) :
+    m.centered z = centeredModNat z m.nat := by
+  unfold LiftModulus.centered centeredModNat
+  by_cases hm : m.nat = 0
+  · simp [hm]
+  · simp only [hm, if_false, m.int_eq, m.half_eq, Int.ofNat_eq_natCast]
+    have hne : ((m.nat : Nat) : Int) ≠ 0 := by omega
+    have hnonneg : 0 ≤ z % ((m.nat : Nat) : Int) := Int.emod_nonneg z hne
+    by_cases hhalf : 2 * (z % ((m.nat : Nat) : Int)).natAbs ≤ m.nat
+    · have hle : z % ((m.nat : Nat) : Int) ≤ ((m.nat / 2 : Nat) : Int) := by omega
+      rw [if_pos hle, if_pos hhalf]
+    · have hnle : ¬ z % ((m.nat : Nat) : Int) ≤ ((m.nat / 2 : Nat) : Int) := by omega
+      have hnotneg : ¬ z % ((m.nat : Nat) : Int) < 0 := by omega
+      rw [if_neg hnle, if_neg hhalf, if_neg hnotneg]
+
 /-- Centred residue modulo `p^b`, the `mod^±` operation in the BHKS cut. -/
 @[expose]
 def centeredResiduePow (p b : Nat) (x : Int) : Int :=
@@ -392,6 +471,58 @@ def cldCoeffs (f : ZPoly) (p a : Nat) (g : ZPoly) : Array Int :=
   let n := f.degree?.getD 0
   (List.range n).map
     (fun j => psiCut p a (bhksCoeffCutThreshold p f j) (quotient.coeff j))
+    |>.toArray
+
+/-- One coefficient of `f * g.derivative`, computed without forming the
+product polynomial. -/
+@[expose]
+def cldNumeratorCoeff (f g : ZPoly) (index : Nat) : Int :=
+  let degree := g.degree?.getD 0
+  (List.range degree).foldl
+    (fun coefficient i =>
+      if i ≤ index then
+        coefficient + f.coeff (index - i) * (Int.ofNat (i + 1) * g.coeff (i + 1))
+      else
+        coefficient)
+    0
+
+/-- Leading coefficients of the monic quotient `f * g.derivative / g`
+modulo `p^a`, in descending degree order.
+
+Monic long division determines the quotient from high degree downward.  The
+recurrence therefore stops after `width` coefficients and avoids constructing
+the unused low-degree tail. -/
+@[expose]
+def cldLeadingQuotientCoeffs
+    (f g : ZPoly) (p a width : Nat) : Array Int :=
+  let n := f.degree?.getD 0
+  let degree := g.degree?.getD 0
+  let modulus : Int := Int.ofNat (p ^ a)
+  (List.range (min n width)).foldl
+    (fun quotient offset =>
+      let coordinate := n - 1 - offset
+      let numerator := cldNumeratorCoeff f g (coordinate + degree)
+      let correction := (List.range (min degree offset)).foldl
+        (fun sum previous =>
+          let distance := previous + 1
+          sum + quotient.getD (offset - distance) 0 *
+            g.coeff (degree - distance))
+        0
+      quotient.push ((numerator - correction) % modulus))
+    #[]
+
+/-- Centred high-bit CLD coefficients for the leading `width` quotient
+coordinates, in descending degree order. -/
+@[expose]
+def cldLeadingCoeffs
+    (f : ZPoly) (p a : Nat) (g : ZPoly) (width : Nat) : Array Int :=
+  let n := f.degree?.getD 0
+  let quotient := cldLeadingQuotientCoeffs f g p a width
+  (List.range quotient.size).map
+    (fun offset =>
+      let coordinate := n - 1 - offset
+      psiCut p a (bhksCoeffCutThreshold p f coordinate)
+        (quotient.getD offset 0))
     |>.toArray
 
 /--
@@ -686,6 +817,61 @@ def bhksLatticeBasis (f : ZPoly) (p a : Nat) (liftedFactors : Array ZPoly) :
     cldRows
     basis }
 
+/-- Prepared leading logarithmic-derivative rows for a nested column schedule. -/
+structure BhksLeadingLogDerivativeData where
+  /-- Degree of the residual integer polynomial. -/
+  degree : Nat
+  /-- The prime underlying the lifted factors. -/
+  p : Nat
+  /-- The exponent in the lifting modulus. -/
+  precision : Nat
+  /-- The lifted factors whose support is to be partitioned. -/
+  liftedFactors : Array ZPoly
+  /-- Leading coordinates, in descending order. -/
+  coordinates : Array Nat
+  /-- Cut thresholds corresponding to `coordinates`. -/
+  cutThresholds : Array Nat
+  /-- Truncated logarithmic-derivative rows corresponding to `coordinates`. -/
+  cldRows : Array (Array Int)
+
+/-- Prepare one maximum-width leading CLD block shared by every smaller prefix
+in an incremental schedule. -/
+@[expose]
+def bhksLeadingLogDerivativeData
+    (f : ZPoly) (p a : Nat) (liftedFactors : Array ZPoly) (width : Nat) :
+    BhksLeadingLogDerivativeData :=
+  let degree := f.degree?.getD 0
+  let coordinates :=
+    ((List.range (min degree width)).map fun i => degree - 1 - i).toArray
+  { degree
+    p
+    precision := a
+    liftedFactors
+    coordinates
+    cutThresholds := coordinates.map (bhksCoeffCutThreshold p f)
+    cldRows := liftedFactors.map (fun g => cldLeadingCoeffs f p a g width) }
+
+/-- The leading-coordinate lattice on the first `width` prepared columns. -/
+@[expose]
+def BhksLeadingLogDerivativeData.coordinateLattice
+    (data : BhksLeadingLogDerivativeData) (width : Nat) : BhksLatticeBasis :=
+  let coordinates := (data.coordinates.toList.take width).toArray
+  let thresholds := (data.cutThresholds.toList.take width).toArray
+  let cldRows := data.cldRows.map fun row => (row.toList.take width).toArray
+  let r := data.liftedFactors.size
+  let n := coordinates.size
+  let basis : Matrix Int (r + n) (r + n) :=
+    Matrix.ofFn
+      (bhksLatticeEntry r n data.p data.precision thresholds cldRows)
+  { p := data.p
+    precision := data.precision
+    factorCount := r
+    coeffWidth := n
+    liftedFactors := data.liftedFactors
+    cutThresholds := thresholds
+    cldRows
+    basis }
+
 private theorem bhksLatticeBasis_factorCount_eq
     (f : ZPoly) (p a : Nat) (liftedFactors : Array ZPoly) :
     (bhksLatticeBasis f p a liftedFactors).factorCount = liftedFactors.size := by
@@ -963,5 +1149,16 @@ theorem bhksProjectedRows_eq_trace
 
 private def cldGuardF : ZPoly :=
   DensePoly.ofCoeffs #[6, -5, 1]
+
+private def cldGuardG : ZPoly :=
+  DensePoly.ofCoeffs #[-2, 1]
+
+-- Truncated high-to-low division agrees with the corresponding entries of the
+-- full CLD quotient on a nontrivial monic divisor.
+#guard cldLeadingCoeffs cldGuardF 5 3 cldGuardG 2 =
+  #[psiCut 5 3 (bhksCoeffCutThreshold 5 cldGuardF 1)
+      ((cldQuotientModBignum cldGuardF cldGuardG 5 3).coeff 1),
+    psiCut 5 3 (bhksCoeffCutThreshold 5 cldGuardF 0)
+      ((cldQuotientModBignum cldGuardF cldGuardG 5 3).coeff 0)]
 
 end Hex

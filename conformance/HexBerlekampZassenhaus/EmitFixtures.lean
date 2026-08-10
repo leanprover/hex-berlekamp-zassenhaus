@@ -62,23 +62,30 @@ lattice result:
   two true factors are the 32-blocks `SD₅(x)` and `SD₅(x+1)`) exercises
   the **split** arm: CLD recovery separates the two 32-blocks at modest
   precision.
-* `adv/swinnerton_dyer_sd6` — SD₆ (degree 64, minimal polynomial of
-  √2+√3+√5+√7+√11+√13, irreducible over ℤ) exercises the
-  **irreducibility-certification** arm: recovery converges to the
-  single all-ones class and the certificate-backed early stop
+* `adv/multiquadratic_nonnorm_64` — the minimal polynomial of
+  √2+√3+√5+√7+√11+√13+√6 (degree 64, content 1, irreducible over ℤ)
+  exercises the **irreducibility-certification** arm: recovery converges
+  to the single all-ones class and the certificate-backed early stop
   returns the original polynomial without grinding to the `bhksBound` cap.
+  This element generates the same degree-64 multiquadratic field as SD₆,
+  so it too splits into quadratics modulo every admissible prime, but its
+  conjugates are `±√2 ±√3 ±√5 ±√7 ±√11 ±√13 ± √6` with the last sign
+  *determined* by the first two. It is therefore **not** an iterated
+  quadratic norm, the recognizer of the next section correctly refuses
+  it, and the lattice answers. That refusal is the point of the case: it
+  is the adversarial twin of `adv/swinnerton_dyer_sd6`.
 
-Swinnerton-Dyer blocks split into factors of degree ≤ 2 modulo every
+Multiquadratic fields split into factors of degree ≤ 2 modulo every
 admissible (squarefree-image) prime, so the lifted-factor count is
 `r ≥ 32` no matter which prime the selector picks (at the selected
 primes, 29 and 19, all blocks are quadratic and `r = 32`), and the
 size-ordered classical search would need ΣC(31,≤15) ≈ 2³⁰ subset
 candidates to reach its half-size frontier. For `sd5_pair` that is
-where the two 16-block factors live, and for `sd6` that is what
-exhausting all nontrivial subset products takes. This is far past the direct
-classical candidate budget, so it declines before starting an incomplete
-cardinality level and the hybrid falls through to the van Hoeij CLD lattice
-arm. Both cases emit the
+where the two 16-block factors live, and for `multiquadratic_nonnorm_64`
+that is what exhausting all nontrivial subset products takes. This is far past
+the direct classical candidate budget, so it declines before starting an
+incomplete cardinality level and the hybrid falls through to the van Hoeij CLD
+lattice arm. Both cases emit the
 *hybrid* trace (`factorTraced`) rather than the classical one. The emit helper
 rejects a run unless the lattice method answered, while the committed trace records
 `method = "lattice"`, `declined = true`, the prime, and `r = 32`. Since each
@@ -86,9 +93,31 @@ remainder is lifted independently, the classical trace reports
 `subsetCandidates = 0`; the separate wall-clock benchmark detects excessive
 recombination work. The `bz_trace_gate.py` baseline also checks the method,
 decline status, and candidate-count bound.
-There is deliberately no `#guard` twin in `Conformance.lean` —
+There is deliberately no `#guard` twin in `Conformance.lean` --
 elaboration-time interpretation of the lattice run would cost minutes
 of build time; the compiled emit executable covers it in seconds.
+
+# Certificate coverage
+
+`adv/swinnerton_dyer_sd6` — SD₆ (degree 64, minimal polynomial of
+√2+√3+√5+√7+√11+√13, irreducible over ℤ) is answered by the
+iterated-quadratic-norm certificate. At `r = 32` the width floor opens the
+gate, recovery reads the radicands `2, 3, 5, 7, 11, 13` and the translation `0`
+off the top coefficients, and the check confirms both independence and the
+coefficientwise identity, so the whole square-free core is returned as one
+irreducible factor with no Hensel lift. Its helper requires
+`method = "quadraticNorm"` and no classical decline. Unlike the lattice cases
+its `classicalFactor` result is emitted rather than skipped, because the
+certificate answers on the classical entry point itself.
+
+# Checked-proposal replay coverage
+
+`regression/split_roots_1_24` has 24 lifted linear factors. The total selector
+routes it through unforced exact peeling and then replays the proved classical
+factorizer on every exact piece. Its helper requires `method = "replay"` and a
+`largeSupport` routing decline. The separately emitted classical result is
+deliberately skipped for this sentinel; nearby split-root cases continue to
+cover the unrestricted public classical entry point.
 
 # Cross-checked operation
 
@@ -367,10 +396,16 @@ than emitted through `factor` so the oracle catches any reducible Hex output. -/
 
 private def cases_good_prime_regression : List ExpectedCase :=
   [ mkExpected "regression/split_roots_1_11" (splitProductCoeffs 11)
-      1 (splitProductExpectedFactors 11)
-  , mkExpected "regression/split_roots_1_24" (splitProductCoeffs 24)
-      1 (splitProductExpectedFactors 24)
-  , mkExpected "regression/split_roots_1_72" (splitProductCoeffs 72)
+      1 (splitProductExpectedFactors 11) ]
+
+/-- A large-support exact-peeling case accepted through proved classical
+replay. It is separated so the emitter can require the `.replay` method. -/
+private def cases_replay : List ExpectedCase :=
+  [ mkExpected "regression/split_roots_1_24" (splitProductCoeffs 24)
+      1 (splitProductExpectedFactors 24) ]
+
+private def cases_good_prime_regression_large : List ExpectedCase :=
+  [ mkExpected "regression/split_roots_1_72" (splitProductCoeffs 72)
       1 (splitProductExpectedFactors 72) ]
 
 /-- Adversarial conformance corpus (per-PR; the heavy high-`r` cases SD4-SD6 and
@@ -472,7 +507,66 @@ private def cases_lattice : List PinnedCase :=
         166363635616, -12197577892, -1365630880, 39901712, 7273376, -10696,
         -22816, -400, 32, 1]
       29 (List.replicate 32 2)
-  , mkPinned "adv/swinnerton_dyer_sd6"
+  , mkPinned "adv/multiquadratic_nonnorm_64"
+      #[163982603328605578670736365403530625,
+        -86959594253853575496760446828545760000,
+        -1298897017660841547045707551087396812000,
+        -3326772778152505773521065270831190592000,
+        5213946132035189693334485431550541183600,
+        29217432446276212152131937249988076025600,
+        21801280851488556396174830894143071585120,
+        -47795348778766259945283776772530508026880,
+        -76299477429482460846366554378531282500616,
+        15695732468265994283157206660051930697984,
+        88595989827498886761592971270455843225504,
+        24272599200856908764534655154465260655104,
+        -53142834497950043011505168728881351850416,
+        -29819269354516191340276352104239366941952,
+        18515200611768511024361000830851741349344,
+        16350437042064944717907533275046228981760,
+        -3661633729451114814804997721004448633188,
+        -5635804691293911367291892932720451129088,
+        237727343268205401671816016653718726816,
+        1362352173646846874354801285967122425344,
+        85407505946182659716457781061726027632,
+        -244353376352580633447861087097055728896,
+        -32147103735480890753734866080053365280,
+        33681483320422417422408341041672590336,
+        6086146531421791704502800466807211208,
+        -3654263280901659963021977208368923392,
+        -795712147076387105436899026455919328,
+        317414465907171238594994222036144640,
+        78314833092705393793624500108067280,
+        -22344180097244858792170297768687872,
+        -6031793428250322113661329719974816,
+        1285666025680213804313961852211200,
+        371445567949950394665727794703046,
+        -60809049829416498788587315577088,
+        -18530552413956808758433979631776,
+        2371774753732484711322208399872, 755090746852536656681762998992,
+        -76367068274747742898233625344, -25255849058458839569065572320,
+        2028069524122737419915891712, 695037934128888499959185864,
+        -44299942009965594581163264, -15740808535498464807845664,
+        792171962648666530776576, 292829904636304825188464,
+        -11516838065323468576512, -4457105458945325284448,
+        134830844106917345280, 55155654037385437596, -1254620459298821376,
+        -549836371216732960, 9113339713122816, 4358844214238032,
+        -50370678249216, -26985384532320, 203907935232, 127120725240,
+        -568340736, -438246816, 972288, 1038192, -768, -1504, 0, 1]
+      19 (List.replicate 32 2) ]
+
+/-! # Certificate coverage
+
+See the module docstring section "Certificate coverage". -/
+
+/-- The certificate case: SD₆, the minimal polynomial of
+√2+√3+√5+√7+√11+√13, degree 64, content 1, irreducible over ℤ.  Its
+recovered certificate is the translation `0` with radicands
+`2, 3, 5, 7, 11, 13`.  The helper requires `method = "quadraticNorm"`, so a
+regression that loses the recognizer -- or gates it out at width 32 --
+fails the emit rather than silently falling back to the lattice. -/
+private def cases_certificate : List PinnedCase :=
+  [ mkPinned "adv/swinnerton_dyer_sd6"
       #[198828783273803025550632280753863681, 0,
         -8316202966928528723117528333532208416, 0,
         100392008259975194458539996111340080624, 0,
@@ -525,6 +619,24 @@ private def emitExpectedCase (c : ExpectedCase) : IO Unit := do
   emitResult lib c.id "factor" (expectedFactorValue c.scalar c.factors)
   emitClassicalResult c.id (DensePoly.ofCoeffs c.coeffs)
 
+/-- Emit a checked-proposal sentinel and reject any method change. The public
+factor result is independently pinned; the classical operation is skipped here
+because this case exists to exercise the total selector's replay branch. -/
+private def emitReplayExpectedCase (c : ExpectedCase) : IO Unit := do
+  let f := DensePoly.ofCoeffs c.coeffs
+  let (phi, trace) := factorTraced f
+  unless trace.method == .replay && trace.classicalDecline == some .largeSupport do
+    throw <| IO.userError
+      s!"emitReplayExpectedCase {c.id}: expected checked proposal replay, got \
+        method={trace.method.name}, decline={trace.classicalDecline.map (·.name)}"
+  unless Factorization.product phi == f do
+    throw <| IO.userError
+      s!"emitReplayExpectedCase {c.id}: replay result does not reconstruct input"
+  emitPolyFixture lib c.id c.coeffs.toList none
+  emitResult lib c.id "factor" (expectedFactorValue c.scalar c.factors)
+  emitResult lib c.id "classicalFactor" "null"
+  emitResult lib c.id "trace" (traceValue trace)
+
 private def emitPinnedCase (c : PinnedCase) : IO Unit := do
   let f := DensePoly.ofCoeffs c.coeffs
   emitPolyFixtureWithModFactorDegrees lib c.id (liftCoeffs f) c.p c.degrees
@@ -559,6 +671,26 @@ private def emitHybridTracedCase (c : PinnedCase) : IO Unit := do
   emitResult lib c.id "classicalFactor" "null"
   emitResult lib c.id "trace" (traceValue trace)
 
+/--
+Emit one case that the iterated-quadratic-norm certificate must answer.
+
+The helper rejects a run unless the certificate answered with no classical
+decline, so losing the recognizer -- or gating it out at this width -- fails
+the emit instead of silently falling back to the lattice.
+-/
+private def emitCertifiedTracedCase (c : PinnedCase) : IO Unit := do
+  let f := DensePoly.ofCoeffs c.coeffs
+  let (φ, trace) := factorTraced f
+  unless trace.method == .quadraticNorm && trace.classicalDecline.isNone do
+    throw <| IO.userError
+      s!"emitCertifiedTracedCase {c.id}: expected the iterated-quadratic-norm \
+        certificate to answer, got method={trace.method.name}, \
+        decline={trace.classicalDecline.map (·.name)}"
+  emitPolyFixtureWithModFactorDegrees lib c.id (liftCoeffs f) c.p c.degrees
+  emitResult lib c.id "factor" (factorValue φ)
+  emitResult lib c.id "classicalFactor" (factorValue φ)
+  emitResult lib c.id "trace" (traceValue trace)
+
 private def emitPinnedExpectedCase (c : PinnedExpectedCase) : IO Unit := do
   let f := DensePoly.ofCoeffs c.coeffs
   emitPolyFixtureWithModFactorDegrees lib c.id (liftCoeffs f) c.p c.degrees
@@ -576,6 +708,10 @@ def main : IO Unit := do
   for c in Hex.BZEmit.cases_pinned_expected do Hex.BZEmit.emitPinnedExpectedCase c
   for c in Hex.BZEmit.cases_content do Hex.BZEmit.emitExpectedCase c
   for c in Hex.BZEmit.cases_good_prime_regression do Hex.BZEmit.emitExpectedCase c
+  for c in Hex.BZEmit.cases_replay do Hex.BZEmit.emitReplayExpectedCase c
+  for c in Hex.BZEmit.cases_good_prime_regression_large do
+    Hex.BZEmit.emitExpectedCase c
   for c in Hex.BZEmit.cases_adversarial do Hex.BZEmit.emitCase c
   for c in Hex.BZEmit.cases_direct do Hex.BZEmit.emitCase c
   for c in Hex.BZEmit.cases_lattice do Hex.BZEmit.emitHybridTracedCase c
+  for c in Hex.BZEmit.cases_certificate do Hex.BZEmit.emitCertifiedTracedCase c

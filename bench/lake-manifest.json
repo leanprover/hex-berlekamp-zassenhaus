@@ -76,10 +76,10 @@
       "type": "git",
       "subDir": null,
       "scope": "",
-      "rev": "b2bf83c9e3162cb5ec8265749dcd4784eb4d9dee",
+      "rev": "80c55f4aa9311583a259850e0aeea3b2c8cccc68",
       "name": "HexBerlekamp",
       "manifestFile": "lake-manifest.json",
-      "inputRev": "b2bf83c9e3162cb5ec8265749dcd4784eb4d9dee",
+      "inputRev": "80c55f4aa9311583a259850e0aeea3b2c8cccc68",
       "inherited": true,
       "configFile": "lakefile.toml"
     },

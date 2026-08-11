@@ -6,7 +6,7 @@ package «hex-berlekamp-zassenhaus» where
   leanOptions := #[⟨`doc.verso, true⟩, ⟨`doc.verso.suggestions, false⟩]
 
 require HexBerlekamp from git
-  "https://github.com/leanprover/hex-berlekamp.git" @ "b2bf83c9e3162cb5ec8265749dcd4784eb4d9dee"
+  "https://github.com/leanprover/hex-berlekamp.git" @ "80c55f4aa9311583a259850e0aeea3b2c8cccc68"
 
 require HexHensel from git
   "https://github.com/leanprover/hex-hensel.git" @ "604853baa6453ac620908f743cb2d736073a0868"

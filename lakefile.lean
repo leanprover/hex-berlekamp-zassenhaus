@@ -6,13 +6,13 @@ package «hex-berlekamp-zassenhaus» where
   leanOptions := #[⟨`doc.verso, true⟩, ⟨`doc.verso.suggestions, false⟩]
 
 require HexBerlekamp from git
-  "https://github.com/leanprover/hex-berlekamp.git" @ "433bdbd9e962103d9ae5817ad5a87fac82e1af6f"
+  "https://github.com/leanprover/hex-berlekamp.git" @ "588422f093eed407b03b65398b2c1bbc4595e4d6"
 
 require HexHensel from git
-  "https://github.com/leanprover/hex-hensel.git" @ "51323f91ec9bae1cfa049a9e956bda69b5310ebb"
+  "https://github.com/leanprover/hex-hensel.git" @ "260a4784d4eaf47c53454ec4643aaa679aa4d49d"
 
 require HexLLL from git
-  "https://github.com/leanprover/hex-lll.git" @ "f3988ace13f8fc1a1457e23d7d4cd4565afcc670"
+  "https://github.com/leanprover/hex-lll.git" @ "0903bf19d250627cd5526fec0dc990467d3776ba"
 
 @[default_target]
 lean_lib HexBerlekampZassenhaus

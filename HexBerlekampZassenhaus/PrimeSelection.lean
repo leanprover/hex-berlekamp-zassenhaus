@@ -15,6 +15,7 @@ public meta import HexHensel.QuadraticMultifactor
 public meta import HexMatrix.Basic
 public meta import HexPolyZ.Mignotte
 public meta import HexLLL
+public meta import HexPrimality.Table
 public import HexArith.Nat.Prime
 public import HexBerlekamp.Factor
 public import HexBerlekamp.Irreducibility
@@ -22,12 +23,12 @@ public import HexHensel.Multifactor
 public import HexHensel.QuadraticMultifactor
 public import HexLLL
 public import HexModArith.Modulus
+public import HexPrimality.Table
 -- Kernel-reducible `Array`/`Vector` equality; see `HexBasic.ArrayDecEq`.
 -- Drop once leanprover/lean4#14270 lands and the toolchain is bumped past it.
 public import HexBasic.ArrayDecEq
 
 open scoped Hex   -- kernel-reducible Array/Vector equality; see HexBasic.ArrayDecEq
-
 
 public section
 set_option backward.proofsInPublic true
@@ -141,10 +142,6 @@ theorem isGoodPrime_of_admissible
   simp only [Bool.and_eq_true]
   exact ⟨⟨decide_eq_true hp, by simpa [bne_iff_ne] using hlc⟩, hsq⟩
 
-/-- The `ZMod64.Bounds` instance witness for `p = 2`. -/
-private theorem bounds_two : ZMod64.Bounds 2 := by
-  constructor <;> decide
-
 /-- The `ZMod64.Bounds` instance witness for `p = 3`. -/
 theorem bounds_three : ZMod64.Bounds 3 := by
   constructor <;> decide
@@ -152,65 +149,6 @@ theorem bounds_three : ZMod64.Bounds 3 := by
 /-- The `ZMod64.Bounds` instance witness for `p = 5`. -/
 private theorem bounds_five : ZMod64.Bounds 5 := by
   constructor <;> decide
-
-/-- The `ZMod64.Bounds` instance witness for `p = 7`. -/
-private theorem bounds_seven : ZMod64.Bounds 7 := by
-  constructor <;> decide
-
-/-- The `ZMod64.Bounds` instance witness for `p = 11`. -/
-private theorem bounds_eleven : ZMod64.Bounds 11 := by
-  constructor <;> decide
-
-/-- The `ZMod64.Bounds` instance witness for `p = 13`. -/
-private theorem bounds_thirteen : ZMod64.Bounds 13 := by
-  constructor <;> decide
-
-/-- The `ZMod64.Bounds` instance witness for `p = 17`. -/
-private theorem bounds_seventeen : ZMod64.Bounds 17 := by
-  constructor <;> decide
-
-/-- The `ZMod64.Bounds` instance witness for `p = 19`. -/
-private theorem bounds_nineteen : ZMod64.Bounds 19 := by
-  constructor <;> decide
-
-/-- The `ZMod64.Bounds` instance witness for `p = 23`. -/
-private theorem bounds_twenty_three : ZMod64.Bounds 23 := by
-  constructor <;> decide
-
-/-- The `ZMod64.Bounds` instance witness for `p = 31`. -/
-private theorem bounds_thirty_one : ZMod64.Bounds 31 := by
-  constructor <;> decide
-
-/-- The `ZMod64.Bounds` instance witness for `p = 71`. -/
-private theorem bounds_seventy_one : ZMod64.Bounds 71 := by
-  constructor <;> decide
-
-/-- The primality certificate for `p = 2`. -/
-private theorem prime_two : Nat.Prime 2 := by
-  refine ⟨?_, ?_⟩
-  · decide
-  · intro a hdvd
-    have hle : a ≤ 2 := Nat.le_of_dvd (by decide : 0 < 2) hdvd
-    rcases hdvd with ⟨k, hk⟩
-    match a with
-    | 0 => omega
-    | 1 => exact Or.inl rfl
-    | 2 => exact Or.inr rfl
-    | _ + 3 => omega
-
-/-- The primality certificate for `p = 3`. -/
-private theorem prime_three : Nat.Prime 3 := by
-  refine ⟨?_, ?_⟩
-  · decide
-  · intro a hdvd
-    have hle : a ≤ 3 := Nat.le_of_dvd (by decide : 0 < 3) hdvd
-    rcases hdvd with ⟨k, hk⟩
-    match a with
-    | 0 => omega
-    | 1 => exact Or.inl rfl
-    | 2 => omega
-    | 3 => exact Or.inr rfl
-    | _ + 4 => omega
 
 /-- The primality certificate for `p = 5`. -/
 private theorem prime_five : Nat.Prime 5 := by
@@ -228,298 +166,55 @@ private theorem prime_five : Nat.Prime 5 := by
     | 5 => exact Or.inr rfl
     | _ + 6 => omega
 
-/-- The primality certificate for `p = 7`. -/
-private theorem prime_seven : Nat.Prime 7 := by
-  refine ⟨?_, ?_⟩
-  · decide
-  · intro a hdvd
-    have hle : a ≤ 7 := Nat.le_of_dvd (by decide : 0 < 7) hdvd
-    rcases hdvd with ⟨k, hk⟩
-    match a with
-    | 0 => omega
-    | 1 => exact Or.inl rfl
-    | 2 => omega
-    | 3 => omega
-    | 4 => omega
-    | 5 => omega
-    | 6 => omega
-    | 7 => exact Or.inr rfl
-    | _ + 8 => omega
-
-/-- The primality certificate for `p = 11`. -/
-private theorem prime_eleven : Nat.Prime 11 := by
-  refine ⟨?_, ?_⟩
-  · decide
-  · intro a hdvd
-    have hle : a ≤ 11 := Nat.le_of_dvd (by decide : 0 < 11) hdvd
-    rcases hdvd with ⟨k, hk⟩
-    match a with
-    | 0 => omega
-    | 1 => exact Or.inl rfl
-    | 2 => omega
-    | 3 => omega
-    | 4 => omega
-    | 5 => omega
-    | 6 => omega
-    | 7 => omega
-    | 8 => omega
-    | 9 => omega
-    | 10 => omega
-    | 11 => exact Or.inr rfl
-    | _ + 12 => omega
-
-/-- The primality certificate for `p = 13`. -/
-private theorem prime_thirteen : Nat.Prime 13 := by
-  refine ⟨?_, ?_⟩
-  · decide
-  · intro a hdvd
-    have hle : a ≤ 13 := Nat.le_of_dvd (by decide : 0 < 13) hdvd
-    rcases hdvd with ⟨k, hk⟩
-    match a with
-    | 0 => omega
-    | 1 => exact Or.inl rfl
-    | 2 => omega
-    | 3 => omega
-    | 4 => omega
-    | 5 => omega
-    | 6 => omega
-    | 7 => omega
-    | 8 => omega
-    | 9 => omega
-    | 10 => omega
-    | 11 => omega
-    | 12 => omega
-    | 13 => exact Or.inr rfl
-    | _ + 14 => omega
-
-/-- The primality certificate for `p = 17`. -/
-private theorem prime_seventeen : Nat.Prime 17 := by
-  refine ⟨?_, ?_⟩
-  · decide
-  · intro a hdvd
-    have hle : a ≤ 17 := Nat.le_of_dvd (by decide : 0 < 17) hdvd
-    rcases hdvd with ⟨k, hk⟩
-    match a with
-    | 0 => omega
-    | 1 => exact Or.inl rfl
-    | 2 => omega
-    | 3 => omega
-    | 4 => omega
-    | 5 => omega
-    | 6 => omega
-    | 7 => omega
-    | 8 => omega
-    | 9 => omega
-    | 10 => omega
-    | 11 => omega
-    | 12 => omega
-    | 13 => omega
-    | 14 => omega
-    | 15 => omega
-    | 16 => omega
-    | 17 => exact Or.inr rfl
-    | _ + 18 => omega
-
-/-- The primality certificate for `p = 19`. -/
-private theorem prime_nineteen : Nat.Prime 19 := by
-  refine ⟨?_, ?_⟩
-  · decide
-  · intro a hdvd
-    have hle : a ≤ 19 := Nat.le_of_dvd (by decide : 0 < 19) hdvd
-    rcases hdvd with ⟨k, hk⟩
-    match a with
-    | 0 => omega
-    | 1 => exact Or.inl rfl
-    | 2 => omega
-    | 3 => omega
-    | 4 => omega
-    | 5 => omega
-    | 6 => omega
-    | 7 => omega
-    | 8 => omega
-    | 9 => omega
-    | 10 => omega
-    | 11 => omega
-    | 12 => omega
-    | 13 => omega
-    | 14 => omega
-    | 15 => omega
-    | 16 => omega
-    | 17 => omega
-    | 18 => omega
-    | 19 => exact Or.inr rfl
-    | _ + 20 => omega
-
-/-- The primality certificate for `p = 23`. -/
-private theorem prime_twenty_three : Nat.Prime 23 := by
-  refine ⟨?_, ?_⟩
-  · decide
-  · intro a hdvd
-    have hle : a ≤ 23 := Nat.le_of_dvd (by decide : 0 < 23) hdvd
-    rcases hdvd with ⟨k, hk⟩
-    match a with
-    | 0 => omega
-    | 1 => exact Or.inl rfl
-    | 2 => omega
-    | 3 => omega
-    | 4 => omega
-    | 5 => omega
-    | 6 => omega
-    | 7 => omega
-    | 8 => omega
-    | 9 => omega
-    | 10 => omega
-    | 11 => omega
-    | 12 => omega
-    | 13 => omega
-    | 14 => omega
-    | 15 => omega
-    | 16 => omega
-    | 17 => omega
-    | 18 => omega
-    | 19 => omega
-    | 20 => omega
-    | 21 => omega
-    | 22 => omega
-    | 23 => exact Or.inr rfl
-    | _ + 24 => omega
-
-/-- The primality certificate for `p = 31`. -/
-private theorem prime_thirty_one : Nat.Prime 31 := by
-  refine ⟨?_, ?_⟩
-  · decide
-  · intro a hdvd
-    have hle : a ≤ 31 := Nat.le_of_dvd (by decide : 0 < 31) hdvd
-    rcases hdvd with ⟨k, hk⟩
-    match a with
-    | 0 => omega
-    | 1 => exact Or.inl rfl
-    | 2 => omega
-    | 3 => omega
-    | 4 => omega
-    | 5 => omega
-    | 6 => omega
-    | 7 => omega
-    | 8 => omega
-    | 9 => omega
-    | 10 => omega
-    | 11 => omega
-    | 12 => omega
-    | 13 => omega
-    | 14 => omega
-    | 15 => omega
-    | 16 => omega
-    | 17 => omega
-    | 18 => omega
-    | 19 => omega
-    | 20 => omega
-    | 21 => omega
-    | 22 => omega
-    | 23 => omega
-    | 24 => omega
-    | 25 => omega
-    | 26 => omega
-    | 27 => omega
-    | 28 => omega
-    | 29 => omega
-    | 30 => omega
-    | 31 => exact Or.inr rfl
-    | _ + 32 => omega
-
-/-- The primality certificate for `p = 71`. -/
-private theorem prime_seventy_one : Nat.Prime 71 := by
-  refine ⟨?_, ?_⟩
-  · decide
-  · intro a hdvd
-    have hle : a ≤ 71 := Nat.le_of_dvd (by decide : 0 < 71) hdvd
-    rcases hdvd with ⟨k, hk⟩
-    match a with
-    | 0 => omega
-    | 1 => exact Or.inl rfl
-    | 2 => omega
-    | 3 => omega
-    | 4 => omega
-    | 5 => omega
-    | 6 => omega
-    | 7 => omega
-    | 8 => omega
-    | 9 => omega
-    | 10 => omega
-    | 11 => omega
-    | 12 => omega
-    | 13 => omega
-    | 14 => omega
-    | 15 => omega
-    | 16 => omega
-    | 17 => omega
-    | 18 => omega
-    | 19 => omega
-    | 20 => omega
-    | 21 => omega
-    | 22 => omega
-    | 23 => omega
-    | 24 => omega
-    | 25 => omega
-    | 26 => omega
-    | 27 => omega
-    | 28 => omega
-    | 29 => omega
-    | 30 => omega
-    | 31 => omega
-    | 32 => omega
-    | 33 => omega
-    | 34 => omega
-    | 35 => omega
-    | 36 => omega
-    | 37 => omega
-    | 38 => omega
-    | 39 => omega
-    | 40 => omega
-    | 41 => omega
-    | 42 => omega
-    | 43 => omega
-    | 44 => omega
-    | 45 => omega
-    | 46 => omega
-    | 47 => omega
-    | 48 => omega
-    | 49 => omega
-    | 50 => omega
-    | 51 => omega
-    | 52 => omega
-    | 53 => omega
-    | 54 => omega
-    | 55 => omega
-    | 56 => omega
-    | 57 => omega
-    | 58 => omega
-    | 59 => omega
-    | 60 => omega
-    | 61 => omega
-    | 62 => omega
-    | 63 => omega
-    | 64 => omega
-    | 65 => omega
-    | 66 => omega
-    | 67 => omega
-    | 68 => omega
-    | 69 => omega
-    | 70 => omega
-    | 71 => exact Or.inr rfl
-    | _ + 72 => omega
-
 /-- The Berlekamp--Zassenhaus hot path uses the shared bundled prime supplied
 by `hex-mod-arith`; it carries both the runtime modulus and its dependent
 bounds and primality evidence. -/
 abbrev SmallPrimeCandidate := ZMod64.Prime
 
-/-- Build a `SmallPrimeCandidate` from a trial-division primality witness and the
-small-modulus bound `p < 2^31` on `p`. -/
-private def smallPrimeCandidateOfTrial (p : Nat)
-    (hprime : Hex.Nat.isPrimeTrial p = true) (hbound : p < 2 ^ 31) :
-    SmallPrimeCandidate :=
-  let prime := Hex.Nat.isPrimeTrial_isPrime hprime
-  { m := p, bounds := { pPos := prime.pos, pLtR := hbound }, prime }
+/-- The committed table primes in `[lo, hi)`, bundled with the bounds and
+primality evidence required by `ZMod64`. -/
+@[expose]
+def tableCandidates (lo hi : Nat) (hhi : hi ≤ 2 ^ 31) : List SmallPrimeCandidate :=
+  (Hex.Nat.primeTable.toList.filter
+      (fun q => decide (lo ≤ q) && decide (q < hi))).attach.map
+    fun ⟨q, hq⟩ =>
+      have hparts := List.mem_filter.mp hq
+      have hprime : Hex.Nat.Prime q :=
+        Hex.Nat.mem_primeTable_prime (Array.mem_def.mpr hparts.1)
+      have hlt : q < 2 ^ 31 := by
+        have hrange := hparts.2
+        rw [Bool.and_eq_true, decide_eq_true_iff, decide_eq_true_iff] at hrange
+        omega
+      { m := q, bounds := { pPos := hprime.pos, pLtR := hlt }, prime := hprime }
+
+private theorem mem_tableCandidates_range {lo hi : Nat} {hhi : hi ≤ 2 ^ 31}
+    {c : SmallPrimeCandidate} (hc : c ∈ tableCandidates lo hi hhi) :
+    lo ≤ c.m ∧ c.m < hi := by
+  unfold tableCandidates at hc
+  rw [List.mem_map] at hc
+  obtain ⟨⟨q, hq⟩, _, rfl⟩ := hc
+  have hrange := (List.mem_filter.mp hq).2
+  rw [Bool.and_eq_true, decide_eq_true_iff, decide_eq_true_iff] at hrange
+  exact hrange
+
+private theorem exists_mem_tableCandidates {lo hi : Nat} {hhi : hi ≤ 2 ^ 31}
+    {p : Nat} (hmem : p ∈ Hex.Nat.primeTable) (hlo : lo ≤ p) (hp : p < hi) :
+    ∃ c ∈ tableCandidates lo hi hhi, c.m = p := by
+  have hfilter : p ∈ Hex.Nat.primeTable.toList.filter
+      (fun q => decide (lo ≤ q) && decide (q < hi)) := by
+    rw [List.mem_filter]
+    refine ⟨Array.mem_def.mp hmem, ?_⟩
+    rw [Bool.and_eq_true, decide_eq_true_iff, decide_eq_true_iff]
+    exact ⟨hlo, hp⟩
+  exact ⟨_, List.mem_map_of_mem (List.mem_attach _ ⟨p, hfilter⟩), rfl⟩
+
+private theorem tableCandidates_map_m {lo hi : Nat} {hhi : hi ≤ 2 ^ 31} :
+    (tableCandidates lo hi hhi).map (fun c => c.m) =
+      Hex.Nat.primeTable.toList.filter
+        (fun q => decide (lo ≤ q) && decide (q < hi)) := by
+  unfold tableCandidates
+  rw [List.map_map]
+  exact List.attach_map_subtype_val _
 
 /-- A scored admissible small-prime candidate for default prime selection. -/
 structure PrimeCandidateScore where
@@ -528,106 +223,15 @@ structure PrimeCandidateScore where
   /-- Smaller scores are preferred; equal scores retain the earlier smaller prime. -/
   factorCount : Nat
 
-/-- The default list of small primes (`3` through `71`) used for Berlekamp-Zassenhaus trial division. -/
+/-- The default small-prime prefix, represented by the committed table window
+`[3, 72)`. -/
 def smallPrimeCandidates : List SmallPrimeCandidate :=
-  [ smallPrimeCandidateOfTrial 3 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 5 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 7 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 11 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 13 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 17 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 19 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 23 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 29 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 31 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 37 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 41 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 43 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 47 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 53 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 59 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 61 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 67 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 71 (by decide) (by decide) ]
+  tableCandidates 3 72 (by decide)
 
-set_option maxRecDepth 10000 in
-/-- The extended list of larger small-prime candidates, tried when `smallPrimeCandidates` is exhausted. -/
+/-- The remaining hot-path primes, represented by the committed table window
+`[72, 501)`. -/
 def extendedSmallPrimeCandidates : List SmallPrimeCandidate :=
-  [ smallPrimeCandidateOfTrial 73 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 79 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 83 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 89 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 97 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 101 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 103 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 107 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 109 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 113 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 127 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 131 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 137 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 139 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 149 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 151 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 157 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 163 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 167 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 173 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 179 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 181 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 191 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 193 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 197 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 199 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 211 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 223 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 227 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 229 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 233 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 239 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 241 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 251 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 257 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 263 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 269 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 271 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 277 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 281 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 283 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 293 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 307 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 311 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 313 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 317 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 331 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 337 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 347 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 349 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 353 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 359 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 367 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 373 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 379 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 383 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 389 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 397 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 401 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 409 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 419 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 421 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 431 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 433 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 439 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 443 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 449 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 457 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 461 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 463 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 467 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 479 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 487 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 491 (by decide) (by decide),
-    smallPrimeCandidateOfTrial 499 (by decide) (by decide) ]
+  tableCandidates 72 501 (by decide)
 
 /--
 The direct planner's prime candidate list: the deterministic small-prime prefix
@@ -646,49 +250,67 @@ def hotPathPrimorial : Nat :=
 #guard extendedSmallPrimeCandidates.length == 75
 #guard hotPathCandidates.length == 94
 
-set_option maxRecDepth 10000 in
+private theorem mem_smallPrimeCandidates_range {c : SmallPrimeCandidate}
+    (hc : c ∈ smallPrimeCandidates) : 3 ≤ c.m ∧ c.m < 72 :=
+  mem_tableCandidates_range hc
+
+private theorem mem_extendedSmallPrimeCandidates_range {c : SmallPrimeCandidate}
+    (hc : c ∈ extendedSmallPrimeCandidates) : 72 ≤ c.m ∧ c.m < 501 :=
+  mem_tableCandidates_range hc
+
 /-- The fixed hot-path list contains no repeated prime values. -/
 theorem hotPathPrimeValues_nodup :
     (hotPathCandidates.map fun c => c.m).Nodup := by
-  decide
+  have hsorted : (hotPathCandidates.map fun c => c.m).Pairwise (· < ·) := by
+    unfold hotPathCandidates smallPrimeCandidates extendedSmallPrimeCandidates
+    rw [List.map_append, tableCandidates_map_m, tableCandidates_map_m,
+      List.pairwise_append]
+    refine ⟨Hex.Nat.primeTable_sorted.filter _,
+      Hex.Nat.primeTable_sorted.filter _, ?_⟩
+    intro a ha b hb
+    have ha' := (List.mem_filter.mp ha).2
+    have hb' := (List.mem_filter.mp hb).2
+    rw [Bool.and_eq_true, decide_eq_true_iff, decide_eq_true_iff] at ha' hb'
+    omega
+  exact hsorted.imp Nat.ne_of_lt
 
 /--
 Soundness of the hot-path prime candidate list: every entry carries a
-prime in the closed range `[3, 500]`. The `Hex.Nat.Prime` conjunct is
-the structure field directly; the bounds follow by a decidable check
-over the 94 explicit primes in the list.
+prime in the closed range `[3, 500]`. The primality conjunct is the structure
+field; the bounds come from the two table windows.
 -/
 theorem mem_hotPathCandidates_prime
     {c : SmallPrimeCandidate} (hc : c ∈ hotPathCandidates) :
     Hex.Nat.Prime c.m ∧ 3 ≤ c.m ∧ c.m ≤ 500 := by
-  have hmem : c.m ∈ hotPathCandidates.map (fun x : SmallPrimeCandidate => x.m) :=
-    List.mem_map_of_mem hc
-  have hbounds :
-      ∀ q ∈ hotPathCandidates.map (fun x : SmallPrimeCandidate => x.m),
-        3 ≤ q ∧ q ≤ 500 := by
-    decide
-  exact ⟨c.prime, (hbounds c.m hmem).1, (hbounds c.m hmem).2⟩
+  refine ⟨c.prime, ?_⟩
+  unfold hotPathCandidates at hc
+  rcases List.mem_append.mp hc with h | h
+  · have := mem_smallPrimeCandidates_range h
+    omega
+  · have := mem_extendedSmallPrimeCandidates_range h
+    omega
 
-set_option maxRecDepth 4096 in
 /--
 Coverage of the hot-path prime candidate list: every prime `p` with
-`3 ≤ p ≤ 500` appears as the `.p` field of some candidate in
-`hotPathCandidates`.
+`3 ≤ p ≤ 500` appears as the `.m` field of some candidate, by completeness
+of the committed table.
 -/
 theorem exists_mem_hotPathCandidates_of_prime
     {p : Nat} (hprime : Hex.Nat.Prime p) (hge : 3 ≤ p) (hle : p ≤ 500) :
     ∃ c ∈ hotPathCandidates, c.m = p := by
-  have htrial : Hex.Nat.isPrimeTrial p = true :=
-    Hex.Nat.isPrimeTrial_of_prime hprime
-  have key : ∀ q : Fin 501,
-      3 ≤ q.val → Hex.Nat.isPrimeTrial q.val = true →
-        q.val ∈ hotPathCandidates.map (fun x : SmallPrimeCandidate => x.m) := by
-    decide
-  have hmem :
-      p ∈ hotPathCandidates.map (fun x : SmallPrimeCandidate => x.m) :=
-    key ⟨p, Nat.lt_succ_of_le hle⟩ hge htrial
-  obtain ⟨c, hc, hcp⟩ := List.mem_map.mp hmem
-  exact ⟨c, hc, hcp⟩
+  have hmem : p ∈ Hex.Nat.primeTable :=
+    Hex.Nat.mem_primeTable_of_prime hprime
+      (Nat.lt_of_le_of_lt hle (by decide))
+  unfold hotPathCandidates
+  rcases Nat.lt_or_ge p 72 with h | h
+  · obtain ⟨c, hc, hcp⟩ :=
+      (exists_mem_tableCandidates hmem hge h :
+        ∃ c ∈ smallPrimeCandidates, c.m = p)
+    exact ⟨c, List.mem_append_left _ hc, hcp⟩
+  · obtain ⟨c, hc, hcp⟩ :=
+      (exists_mem_tableCandidates hmem h (by omega) :
+        ∃ c ∈ extendedSmallPrimeCandidates, c.m = p)
+    exact ⟨c, List.mem_append_right _ hc, hcp⟩
 
 /--
 Coerce an admissible nonzero modular image to its monic representative by
@@ -1176,6 +798,8 @@ def choosePrime (f : ZPoly) : Nat :=
   | some score => score.p
   | none => 3
 
+/-- Any score the hot-path walk returns records a prime that passes the
+good-prime check for `f`. -/
 theorem choosePrimeScore?_isGoodPrime
     (f : ZPoly) (score : PrimeCandidateScore)
     (hscore : choosePrimeScore? f = some score) :
@@ -1186,6 +810,8 @@ theorem choosePrimeScore?_isGoodPrime
     (by intro old hnone; cases hnone)
     hscore
 
+/-- When `choosePrime` returns the winning score's prime, that prime passes
+the good-prime check for `f`. -/
 theorem choosePrime_isGoodPrime_of_selected
     (f : ZPoly) (score : PrimeCandidateScore)
     (hscore : choosePrimeScore? f = some score)
